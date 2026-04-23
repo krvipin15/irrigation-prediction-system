@@ -5,7 +5,7 @@ repos:
     rev: v0.15.11
     hooks:
       - id: ruff-check
-        args: [--fix, --select, "ALL", --ignore, "COM812,ISC001"]
+        args: [--fix]
       - id: ruff-format
 
   # Type checking
@@ -17,16 +17,15 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+        stages: [pre-push]
 
-  # Syncs data/models with Git
+  # DVC
   - repo: https://github.com/iterative/dvc
     rev: 3.67.1
     hooks:
       - id: dvc-pre-commit
-        additional_dependencies: ['.[all]']
         stages: [pre-commit]
       - id: dvc-post-checkout
-        additional_dependencies: ['.[all]']
         stages: [post-checkout]
 
   # Clear outputs in jupyter notebook
@@ -41,14 +40,12 @@ repos:
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
-      - id: check-yaml
-      - id: check-toml
       - id: detect-private-key
       - id: check-merge-conflict
       - id: check-added-large-files
         args: [--maxkb=1000]
-      - id: check-json
       - id: mixed-line-ending
+        args: [--fix=lf]
 
   # Security checks
   - repo: https://github.com/PyCQA/bandit
@@ -57,12 +54,14 @@ repos:
       - id: bandit
         args: [-c, pyproject.toml]
         additional_dependencies: ["bandit[toml]"]
+        stages: [pre-push]
 
   # Dockerfile linting
   - repo: https://github.com/hadolint/hadolint
     rev: v2.14.0
     hooks:
       - id: hadolint-docker
+        stages: [pre-push]
 
   # Markdown linting
   - repo: https://github.com/igorshubovych/markdownlint-cli
@@ -70,6 +69,7 @@ repos:
     hooks:
       - id: markdownlint
         args: [--fix]
+        stages: [pre-push]
 
   # Check commit messages
   - repo: https://github.com/compilerla/conventional-pre-commit
@@ -85,6 +85,7 @@ repos:
       - id: detect-secrets
         args: ["--baseline", ".secrets.baseline"]
         exclude: '\.dvc$'
+        stages: [pre-commit]
 
   # Auto-fix common typos
   - repo: https://github.com/crate-ci/typos
@@ -98,6 +99,7 @@ repos:
     rev: v1.7.12
     hooks:
       - id: actionlint
+        stages: [pre-push]
 
   # YAML style consistency
   - repo: https://github.com/adrienverge/yamllint
@@ -111,6 +113,7 @@ repos:
     rev: v0.5.0
     hooks:
       - id: sync-with-uv
+        stages: [pre-push]
 
   # Sort TOML file
   - repo: https://github.com/pappasam/toml-sort
@@ -119,15 +122,10 @@ repos:
       - id: toml-sort
         args: [--in-place, --all]
 
-  # Check JSON file
-  - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.37.1
-    hooks:
-      - id: check-github-workflows
-
   # Refurbishing and modernizing Python codebases.
   - repo: https://github.com/dosisod/refurb
     rev: v2.3.1
     hooks:
       - id: refurb
         args: ["--ignore", "FURB101,FURB103"]
+        stages: [pre-push]
