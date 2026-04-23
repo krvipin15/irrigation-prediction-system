@@ -1,0 +1,133 @@
+---
+repos:
+  # Ruff - linting and formatting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.11
+    hooks:
+      - id: ruff-check
+        args: [--fix, --select, "ALL", --ignore, "COM812,ISC001"]
+      - id: ruff-format
+
+  # Type checking
+  - repo: local
+    hooks:
+      - id: ty
+        name: ty
+        entry: uvx ty check
+        language: system
+        types: [python]
+        pass_filenames: false
+
+  # Syncs data/models with Git
+  - repo: https://github.com/iterative/dvc
+    rev: 3.67.1
+    hooks:
+      - id: dvc-pre-commit
+        additional_dependencies: ['.[all]']
+        stages: [pre-commit]
+      - id: dvc-post-checkout
+        additional_dependencies: ['.[all]']
+        stages: [post-checkout]
+
+  # Clear outputs in jupyter notebook
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.9.1
+    hooks:
+      - id: nbstripout
+
+  # Check for common issues
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: detect-private-key
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: check-json
+      - id: mixed-line-ending
+
+  # Security checks
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.4
+    hooks:
+      - id: bandit
+        args: [-c, pyproject.toml]
+        additional_dependencies: ["bandit[toml]"]
+
+  # Dockerfile linting
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.14.0
+    hooks:
+      - id: hadolint-docker
+
+  # Markdown linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.48.0
+    hooks:
+      - id: markdownlint
+        args: [--fix]
+
+  # Check commit messages
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+
+  # Secrets detection
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ["--baseline", ".secrets.baseline"]
+        exclude: '\.dvc$'
+
+  # Auto-fix common typos
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.45.1
+    hooks:
+      - id: typos
+        args: [--write-changes]
+
+  # GitHub Actions linting
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      - id: actionlint
+
+  # YAML style consistency
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.38.0
+    hooks:
+      - id: yamllint
+        args: [-d, "{rules: {line-length: {max: 110}}}"]
+
+  # Sync uv tools
+  - repo: https://github.com/tsvikas/sync-with-uv
+    rev: v0.5.0
+    hooks:
+      - id: sync-with-uv
+
+  # Sort TOML file
+  - repo: https://github.com/pappasam/toml-sort
+    rev: v0.24.4
+    hooks:
+      - id: toml-sort
+        args: [--in-place, --all]
+
+  # Check JSON file
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.37.1
+    hooks:
+      - id: check-github-workflows
+
+  # Refurbishing and modernizing Python codebases.
+  - repo: https://github.com/dosisod/refurb
+    rev: v2.3.1
+    hooks:
+      - id: refurb
+        args: ["--ignore", "FURB101,FURB103"]
