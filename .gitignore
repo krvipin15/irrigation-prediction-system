@@ -1,0 +1,253 @@
+# =============================================================================
+# 1. DATA & DVC
+#    Raw/processed data is tracked by DVC — only .dvc pointers go to Git
+# =============================================================================
+
+# Ignore all data content but keep folder structure and DVC pointers
+/data/raw/*
+/data/processed/*
+/data/experiments/*
+!/data/raw/.gitkeep
+!/data/processed/.gitkeep
+
+# DVC internals (keep .dvc/config for remote settings, ignore local overrides)
+.dvc/config.local
+.dvc/tmp/
+.dvc/cache/
+.dvc/plots/
+.dvc/state
+
+# Ignore catbost model info
+catboost_info
+
+# =============================================================================
+# 2. ARTIFACTS
+#    Binaries are DVC-managed; only pointers and folder skeletons go to Git
+# =============================================================================
+
+/artifacts/**/model/*
+!/artifacts/**/model/.gitkeep
+!/artifacts/**/model/*.dvc
+
+/artifacts/**/report/*
+!/artifacts/**/report/.gitkeep
+
+/artifacts/**/mlflow/*
+!/artifacts/**/mlflow/.gitkeep
+
+/artifacts/**/logs/*
+!/artifacts/**/logs/.gitkeep
+
+
+# =============================================================================
+# 3. MONITORING & VALIDATION
+#    Auto-generated HTML/JSON reports from Deepchecks
+# =============================================================================
+
+# Deepchecks
+.deepchecks/
+
+
+# =============================================================================
+# 4. MODEL & DATA SERIALIZATION
+#    All binary/large file formats — DVC handles versioning these
+# =============================================================================
+
+# Model binaries
+*.skops
+*.pkl
+*.joblib
+*.onnx
+*.pt
+*.pth
+*.h5
+*.pb
+*.mar
+*.safetensors
+*.ujb
+
+# Data formats
+*.csv
+*.parquet
+*.feather
+*.avro
+*.orc
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.gz
+*.7z
+
+
+# =============================================================================
+# 5. PYTHON RUNTIME & PACKAGING
+# =============================================================================
+
+# Byte-compiled / optimised / DLL files
+__pycache__/
+*.py[codz]
+*$py.class
+*.so
+*.pyd
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+sdist/
+var/
+wheels/
+*.whl
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+
+
+# =============================================================================
+# 6. VIRTUAL ENVIRONMENTS
+# =============================================================================
+
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+
+# =============================================================================
+# 7. SECRETS & ENVIRONMENT VARIABLES
+#    NEVER commit real credentials — use .env.example for documentation
+# =============================================================================
+
+.env
+.env.*
+!.env.example
+
+# Streamlit Secrets
+.streamlit/secrets.toml
+
+# Cloud & service credentials
+*.pem
+*.key
+credentials.json
+service_account.json
+
+
+# =============================================================================
+# 8. TESTING, COVERAGE & LINTING
+# =============================================================================
+
+# Pytest
+.pytest_cache/
+.cache/
+.hypothesis/
+
+# Coverage
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Ruff & type checkers
+.ruff_cache/
+.mypy_cache/
+
+# Pre-commit
+.pre-commit-cache/
+
+
+# =============================================================================
+# 9. NOTEBOOKS
+# =============================================================================
+
+# Jupyter checkpoint directories
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/
+
+# Notebooks with pre-stripped output
+notebooks/*.output.ipynb
+**/*.nbconvert.ipynb
+
+
+# =============================================================================
+# 10. LOGS
+# =============================================================================
+
+*.log
+logs/
+src/api/logs/
+
+# Structlog outputs if written to disk
+*.structlog
+
+
+# =============================================================================
+# 11. IDEs & OPERATING SYSTEM
+# =============================================================================
+
+# JetBrains (PyCharm, DataSpell)
+.idea/
+
+# VS Code / Cursor (Allow settings for team consistency)
+.vscode/*
+.vscode/settings.json
+.vscode/extensions.json
+.history/
+.cursor/
+.cursorignore
+.cursorindexingignore
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverrideAttribute
+
+# Windows
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+
+# =============================================================================
+# 12. GLOBAL ALLOWLIST
+#     Explicit negation rules — last match wins
+# =============================================================================
+
+# DVC pointers
+!*.dvc
+!dvc.lock
+
+# Project config files committed to Git
+!.python-version
+!pyproject.toml
+!Makefile
+!poetry.lock
+!uv.lock
+!.pre-commit-config.yaml
+
+# All YAML/YML configs are tracked (e.g. GitHub Actions, DVC, model configs)
+!*.yaml
+!*.yml
+
+# Docs & meta
+!*.md
+!LICENSE
+
+# Folder placeholders
+!.gitkeep
+!**/.gitkeep
+
+# -------------------------------------------------------------------
+# Re-ignore secrets that were un-hidden by the *.yaml / *.yml rules
+# above. These must come AFTER the allowlist to take final precedence.
+# -------------------------------------------------------------------
+secrets.yaml
+secrets.yml
+secrets.json
+render/secrets.yaml
+docker-compose.override.yml

@@ -1,0 +1,27 @@
+[project]
+authors = [
+  {email = "krvipin15@tutamail.com", name = "Vipin Kumar"}
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Framework :: FastAPI",
+  "Framework :: Pydantic :: 2",
+  "Framework :: Pytest",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Natural Language :: English",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Typing :: Typed"
+]
+dependencies = []
+description = "An MLOps system to predict irrigation water requirements using a ml model trained on environmental and agricultural data, enabling efficient water usage in farming."
+license = "MIT"
+license-files = ["LICEN[CS]E.*"]
+name = "irrigation-prediction-system"
+readme = "README.md"
+requires-python = ">=3.12"
+version = "0.1.0"
