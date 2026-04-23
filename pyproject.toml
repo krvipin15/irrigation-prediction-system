@@ -1,3 +1,12 @@
+[dependency-groups]
+dev = [
+    "pre-commit>=4.6.0",
+    "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.15.11",
+    "ty>=0.0.32",
+]
+
 [project]
 authors = [
   {email = "krvipin15@tutamail.com", name = "Vipin Kumar"}
@@ -17,7 +26,23 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules",
   "Typing :: Typed"
 ]
-dependencies = []
+dependencies = [
+    "catboost>=1.2.10",
+    "dagshub>=0.7.0",
+    "dvc-s3>=3.3.0",
+    "evidently>=0.7.21",
+    "fastapi>=0.136.0",
+    "ipykernel>=7.2.0",
+    "ipywidgets>=8.1.8",
+    "lightgbm>=4.6.0",
+    "mlflow>=3.11.1",
+    "pandas>=2.3.3",
+    "pandera[pandas]>=0.31.1",
+    "prefect>=3.6.27",
+    "scikit-learn>=1.8.0",
+    "streamlit>=1.56.0",
+    "xgboost>=3.2.0",
+]
 description = "An MLOps system to predict irrigation water requirements using a ml model trained on environmental and agricultural data, enabling efficient water usage in farming."
 license = "MIT"
 license-files = ["LICEN[CS]E.*"]
@@ -25,3 +50,99 @@ name = "irrigation-prediction-system"
 readme = "README.md"
 requires-python = ">=3.12"
 version = "0.1.0"
+
+[tool.bandit]
+exclude_dirs = [".venv/", "tests/"]
+skips = ["B101", "B311"]
+targets = ["src/"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "@abstractmethod",
+  "if TYPE_CHECKING:",
+  "if __name__ == .__main__.:",
+  "pragma: no cover",
+  "raise NotImplementedError"
+]
+
+[tool.coverage.run]
+branch = true
+omit = [
+  "*/conftest.py",
+  "src/database/migrations.py"
+]
+source = ["src"]
+
+[tool.pytest.ini_options]
+addopts = [
+  "--cov-fail-under=70",
+  "--cov-report=term-missing",
+  "--cov-report=xml",
+  "--cov=src",
+  "--strict-markers",
+  "--tb=short",
+  "-ra"
+]
+asyncio_mode = "auto"
+markers = [
+  "integration: tests requiring external services",
+  "slow: tests that take >10s",
+  "unit: fast, isolated unit tests",
+  "validation: deepchecks data validation suite"
+]
+python_classes = ["Test*"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 110
+src = ["src", "tests"]
+target-version = "py312"
+
+[tool.ruff.format]
+docstring-code-format = true
+indent-style = "space"
+quote-style = "double"
+
+[tool.ruff.lint]
+ignore = [
+  "E501", # line too long — handled by formatter
+  "PLR0912", # too many branches — acceptable in pipeline logic
+  "PLR0913", # too many arguments — common in ML training functions
+  "S101", # assert — used in tests
+  "S311" # random — not used for crypto
+]
+select = [
+  "A", # flake8-builtins
+  "ARG", # flake8-unused-arguments
+  "B", # flake8-bugbear
+  "C4", # flake8-comprehensions
+  "D", # docstrings
+  "DTZ", # flake8-datetimez
+  "E", # pycodestyle errors
+  "ERA", # eradicate (commented-out code)
+  "F", # pyflakes
+  "I", # isort
+  "N", # pep8-naming
+  "PERF", # perflint
+  "PL", # pylint
+  "PTH", # flake8-use-pathlib
+  "RET", # flake8-return
+  "S", # flake8-bandit (basic security)
+  "SIM", # flake8-simplify
+  "T20", # flake8-print
+  "UP", # pyupgrade
+  "W" # pycodestyle warnings
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/experiments/*" = ["BLE001", "N803", "T201"]
+"src/pipeline/*" = ["N803", "N806"]
+"tests/**/*.py" = ["ARG001", "PLR2004", "S101"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
