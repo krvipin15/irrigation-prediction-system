@@ -1,0 +1,125 @@
+---
+name: CI Pipeline
+
+# TRIGGERS
+"on":
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:  # Allow manual trigger
+
+# Concurrency guard
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Global environment variables
+env:
+  PYTHON_VERSION: "3.12"
+  UV_CACHE_DIR: /tmp/.uv-cache
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+# JOBS
+jobs:
+  # JOB 0 · Secret Scanning
+  secret-scan:
+    name: Secret Scan (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # JOB 1 · Pre-Commit
+  pre-commit:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # 1. Checkout full repo history
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      # 2. Install uv (fast dependency manager)
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "latest"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      # 3. Install Python via uv
+      - name: Set up Python
+        run: uv python install ${{ env.PYTHON_VERSION }}
+
+      # 4. Install dependencies (strict lockfile enforcement)
+      - name: Install dependencies
+        run: uv sync --frozen --all-extras
+
+      # 5. Cache pre-commit environments (huge speed boost)
+      - name: Cache pre-commit
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+          restore-keys: pre-commit-
+
+      # 6. Run pre-commit hooks
+      - name: Run pre-commit hooks
+        env:
+          SKIP: dvc-pre-commit,dvc-post-checkout
+        run: |
+          uv run pre-commit run --all-files \
+            --show-diff-on-failure --color=always
+
+  # JOB 2 · Vulnerability Audit
+  dependency-audit:
+    name: Dependency Vulnerability Audit
+    runs-on: ubuntu-latest
+    needs: pre-commit
+    steps:
+      # 1. Checkout full repo history
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      # 2. Install uv (fast dependency manager)
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "latest"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      # 3. Install Python via uv
+      - name: Set up Python
+        run: uv python install ${{ env.PYTHON_VERSION }}
+
+      # 4. Install dependencies (strict lockfile enforcement)
+      - name: Install dependencies
+        run: uv sync --frozen --all-extras
+
+      # 5. Audit dependencies for CVEs (Common Vulnerabilities and Exposures)
+      - name: Audit dependencies for CVEs
+        run: |
+          uv pip compile pyproject.toml -o /tmp/requirements.txt
+          uvx pip-audit -r /tmp/requirements.txt --format=json \
+            --output=/tmp/pip-audit-report.json || true
+          cat /tmp/pip-audit-report.json
+
+      # 6. Archive the audit results
+      - name: Upload pip-audit report
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: pip-audit-report-${{ github.run_id }}
+          path: /tmp/pip-audit-report.json
+          retention-days: 14
