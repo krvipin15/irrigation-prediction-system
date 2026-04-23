@@ -125,7 +125,7 @@ class Settings(BaseSettings):
     ARTIFACTS_DIR: Path = BASE_DIR / "artifacts" / f"run_{datetime.now(tz=UTC).strftime('%Y%m%d_%H%M%S')}"
     VALIDATION_REPORT_DIR: Path = ARTIFACTS_DIR / "reports" / "validation"
     PANDERA_REPORT_FILENAME: str = f"report_{datetime.now(tz=UTC).strftime('%Y%m%d_%H%M%S')}.json"
-    MONITERING_REPORT_DIR: Path = ARTIFACTS_DIR / "reports" / "monitoring"
+    MONITORING_REPORT_DIR: Path = ARTIFACTS_DIR / "reports" / "monitoring"
     EVIDENTLY_REPORT_FILENAME: str = f"report_{datetime.now(tz=UTC).strftime('%Y%m%d_%H%M%S')}.json"
 
     @field_validator(
@@ -136,7 +136,7 @@ class Settings(BaseSettings):
         "EXP_ARTIFACT_DIR",
         "ARTIFACTS_DIR",
         "VALIDATION_REPORT_DIR",
-        "MONITERING_REPORT_DIR",
+        "MONITORING_REPORT_DIR",
         mode="after",
     )
     @classmethod
