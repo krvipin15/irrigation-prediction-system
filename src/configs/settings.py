@@ -128,7 +128,6 @@ class Settings(BaseSettings):
     VALIDATION_REPORT_DIR: Path = ARTIFACTS_DIR / "reports" / "validation"
     PANDERA_REPORT_FILENAME: str = f"report_{datetime.now(tz=UTC).strftime('%Y%m%d_%H%M%S')}.json"
     MONITORING_REPORT_DIR: Path = ARTIFACTS_DIR / "reports" / "monitoring"
-    EVIDENTLY_JSON_FILENAME: str = f"report_{datetime.now(tz=UTC).strftime('%Y%m%d_%H%M%S')}.json"
     EVIDENTLY_HTML_FILENAME: str = f"report_{datetime.now(tz=UTC).strftime('%Y%m%d_%H%M%S')}.html"
 
     @field_validator(
