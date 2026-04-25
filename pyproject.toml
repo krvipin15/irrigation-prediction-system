@@ -43,7 +43,7 @@ dependencies = [
   "scikit-learn>=1.8.0",
   "skops>=0.14.0",
   "streamlit>=1.56.0",
-  "xgboost>=3.2.0",
+  "xgboost>=3.2.0"
 ]
 description = "An MLOps system to predict irrigation water requirements using a ml model trained on environmental and agricultural data, enabling efficient water usage in farming."
 license = "MIT"
