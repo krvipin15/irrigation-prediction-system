@@ -1,0 +1,5 @@
+[core]
+    analytics = false
+['remote "origin"']
+    url = s3://dvc
+    endpointurl = https://dagshub.com/krvipin15/irrigation-prediction-system.s3

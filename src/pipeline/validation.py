@@ -1,0 +1,181 @@
+"""
+Dataset validation module.
+
+This module defines schemas for validating agricultural datasets used in
+irrigation prediction pipelines. It supports both training (with target column)
+and inference (without target column) datasets.
+
+Validation is performed using Pandera with strict schema enforcement, type
+coercion, and detailed error reporting. Integrated with Prefect for logging
+and observability.
+"""
+
+import json
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+import pandas as pd
+import pandera.pandas as pa
+from pandera.errors import SchemaErrors
+from prefect import get_run_logger, task
+from prefect.artifacts import create_markdown_artifact
+
+from src.configs.settings import Settings, get_settings
+
+if TYPE_CHECKING:
+    from logging import Logger, LoggerAdapter
+
+# Setup application configs
+settings: Settings = get_settings()
+report_filename: Path = settings.VALIDATION_REPORT_DIR / settings.PANDERA_REPORT_FILENAME
+target_col: str = "Irrigation_Need"
+
+# ---------------------------------------------------------------------------------
+# Schema to verify the columns and index of Pandas DataFrame
+# ---------------------------------------------------------------------------------
+
+# Define shared features to ensure consistency between Train and Inference
+shared_columns: dict[str, object] = {
+    "Soil_Type": pa.Column("category"),
+    "Soil_pH": pa.Column("float32", pa.Check.in_range(0, 14)),
+    "Soil_Moisture": pa.Column("float32", pa.Check.in_range(0, 100)),
+    "Organic_Carbon": pa.Column("float32", pa.Check.ge(0)),
+    "Electrical_Conductivity": pa.Column("float32", pa.Check.ge(0)),
+    "Temperature_C": pa.Column("float32", pa.Check.in_range(-50, 60)),
+    "Humidity": pa.Column("float32", pa.Check.in_range(0, 100)),
+    "Rainfall_mm": pa.Column("float32", pa.Check.ge(0)),
+    "Sunlight_Hours": pa.Column("float32", pa.Check.in_range(0, 24)),
+    "Wind_Speed_kmh": pa.Column("float32", pa.Check.ge(0)),
+    "Crop_Type": pa.Column("category"),
+    "Crop_Growth_Stage": pa.Column("category"),
+    "Season": pa.Column("category"),
+    "Irrigation_Type": pa.Column("category"),
+    "Water_Source": pa.Column("category"),
+    "Field_Area_hectare": pa.Column("float32", pa.Check.gt(0)),
+    "Mulching_Used": pa.Column("boolean"),
+    "Previous_Irrigation_mm": pa.Column("float32", pa.Check.ge(0)),
+    "Region": pa.Column("category"),
+}
+
+# Training Schema (includes target)
+raw_data_schema = pa.DataFrameSchema(
+    columns=shared_columns | {target_col: pa.Column("category")},
+    index=pa.Index(int),
+    strict=True,
+    coerce=True,
+)
+
+# Inference Schema (no target)
+unseen_data_schema = pa.DataFrameSchema(
+    columns=shared_columns,
+    index=pa.Index(int),
+    strict=True,
+    coerce=True,
+)
+
+# ---------------------------------------------------------------------------------
+# Prefect Task: Validating dataset using Pandera
+# ---------------------------------------------------------------------------------
+
+
+@task(
+    name="Validate Dataset",
+    description="Validate dataset before applying preprocessing.",
+    tags=["validate", "pipeline"],
+    timeout_seconds=300,
+    log_prints=True,
+)
+def validate_dataset(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Validate a dataset against predefined Pandera schemas.
+
+    This function checks whether the input DataFrame conforms to the expected
+    schema. If the target column (`Irrigation_Need`) is present, the dataset is
+    treated as training data and validated against the full schema. Otherwise,
+    it is treated as unseen/inference data and validated against a reduced schema.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Input dataset to validate.
+
+    Returns
+    -------
+    pandas.DataFrame
+        The validated DataFrame with enforced schema types.
+
+    Raises
+    ------
+    pandera.errors.SchemaErrors
+        If one or more schema validation checks fail. Includes detailed failure
+        cases and aggregated summaries.
+    Exception
+        Propagates unexpected errors encountered during validation.
+
+    Notes
+    -----
+    - Validation is performed with `lazy=True`, collecting all errors before raising.
+    - Type coercion is enabled via schema configuration (`coerce=True`).
+    - Strict mode ensures no extra or missing columns are allowed.
+    - Logs include both summary and detailed failure diagnostics.
+
+    Examples
+    --------
+    >>> df_valid = validate_dataset(df)
+
+    >>> # For inference dataset (no target column)
+    >>> df_valid = validate_dataset(df.drop(columns=["Irrigation_Need"]))
+    """
+    logger: Logger | LoggerAdapter[Logger] = get_run_logger()
+    logger.info("Starting validation for dataframe with %s rows.", df.shape[0])
+
+    try:
+        if target_col in df.columns:
+            validated_df = raw_data_schema.validate(df, lazy=True)
+        else:
+            validated_df = unseen_data_schema.validate(df, lazy=True)
+
+    except SchemaErrors as err:
+        # 1. Generate failure report data
+        summary: dict = err.failure_cases.groupby(["column", "check"]).size().to_dict()
+        summary_serializable: dict = {str(k): v for k, v in summary.items()}
+
+        # Convert failure cases to a list of dicts, ensuring types are JSON compatible
+        details: dict = err.failure_cases.assign(index=err.failure_cases["index"].astype(str)).to_dict(
+            orient="records"
+        )
+
+        failure_report: dict[str, dict | int] = {
+            "summary": summary_serializable,
+            "details": details,
+            "schema_errors_count": len(err.failure_cases),
+        }
+
+        try:
+            with Path.open(report_filename, "w") as f:
+                json.dump(failure_report, f, indent=4, default=str)
+        except (OSError, TypeError, ValueError) as e:
+            logger.warning("Could not write JSON report to disk: %s", e)
+
+        # 3. Prefect Integration: Create a Markdown Artifact
+        markdown_table = err.failure_cases.head(10).to_markdown()
+        create_markdown_artifact(
+            key="validation-report",
+            markdown=(
+                f"## Validation Failed\n\n"
+                f"Found **{len(err.failure_cases)}** violations.\n\n"
+                f"### Top Failure Cases (Preview)\n\n{markdown_table}\n\n"
+                f"Check the logs or `{report_filename}` for the full report."
+            ),
+        )
+
+        logger.exception("Validation failed! Report saved to %s", report_filename)
+        raise
+
+    except Exception:
+        logger.exception("An unexpected error occurred during validation")
+        raise
+
+    else:
+        logger.info("Validation successful: Data matches the schema.")
+        return validated_df
