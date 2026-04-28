@@ -26,7 +26,6 @@ if TYPE_CHECKING:
 settings: Settings = get_settings()
 
 # Setup data paths
-preprocess_pipeline_filepath: Path = settings.EXP_ARTIFACT_DIR / settings.PREPROCESS_PIPELINE_FILENAME
 preprocessed_data_filepath: Path = settings.PREPROCESSED_DATA_DIR / settings.PREPROCESSED_DATA_FILENAME
 
 # ---------------------------------------------------------------------------------
@@ -41,7 +40,7 @@ preprocessed_data_filepath: Path = settings.PREPROCESSED_DATA_DIR / settings.PRE
     timeout_seconds=300,
     log_prints=True,
 )
-def preprocess_dataset(df: pd.DataFrame) -> pd.DataFrame:
+def preprocess_dataset(df: pd.DataFrame, preprocess_filepath: Path) -> pd.DataFrame:
     """
     Apply a pre-trained preprocessing pipeline to a dataset.
 
@@ -53,6 +52,9 @@ def preprocess_dataset(df: pd.DataFrame) -> pd.DataFrame:
     ----------
     df : pandas.DataFrame
         Input dataset to preprocess. Typically validated prior to this step.
+
+    preprocess_filepath: Path
+        Contains preprocessing as joblib. Ready to load and apply on datatset.
 
     Returns
     -------
@@ -82,10 +84,10 @@ def preprocess_dataset(df: pd.DataFrame) -> pd.DataFrame:
     >>> transformed_df.shape
     """
     logger: Logger | LoggerAdapter[Logger] = get_run_logger()
-    logger.info("Loading preprocessor from %s", preprocess_pipeline_filepath)
+    logger.info("Loading preprocessor from %s", preprocess_filepath)
 
     # Load the preprocessor
-    preprocessor = joblib.load(preprocess_pipeline_filepath)
+    preprocessor = joblib.load(preprocess_filepath)
     logger.info("Starting data transformation...")
 
     # Perform transformation

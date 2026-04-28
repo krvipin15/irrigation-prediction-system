@@ -33,7 +33,6 @@ settings: Settings = get_settings()
 # File Paths & Constants
 # ------------------------------------------------------------------------------
 
-encoder_path: Path = settings.EXP_ARTIFACT_DIR / settings.TARGET_ENCODER_FILENAME
 preprocessed_data_filepath: Path = settings.PREPROCESSED_DATA_DIR / settings.PREPROCESSED_DATA_FILENAME
 output_path: Path = settings.PREDICTIONS_DIR / settings.PREDICTION_FILENAME
 model_path = settings.MODELS_DIR / settings.MODEL_FILENAME
@@ -122,7 +121,7 @@ def _download_model() -> Path | None:
     timeout_seconds=300,
     log_prints=True,
 )
-def run_inference() -> pd.DataFrame:
+def run_inference(encoder_path: Path) -> pd.DataFrame:
     """
     Run batch inference using a trained ML model.
 
@@ -132,6 +131,11 @@ def run_inference() -> pd.DataFrame:
     3. Performs predictions
     4. Optionally decodes predictions using a target encoder
     5. Saves prediction results to disk
+
+    Parameters
+    ----------
+    encoder_path: Path
+        Target encoder joblib file to decode prediction values e.g., 0 -> Low
 
     Returns
     -------
