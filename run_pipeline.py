@@ -37,7 +37,7 @@ settings: Settings = get_settings()
 df: pd.DataFrame | None = None
 raw_filepath: Path = settings.RAW_DATA_DIR / settings.RAW_DATA_FILENAME
 unseen_filepath: Path = settings.UNSEEN_DATA_DIR / settings.UNSEEN_DATA_FILENAME
-processed_raw_filepath: Path = settings.EXPERIMENTS_DATA_DIR / settings.TREE_FILENAME
+processed_raw_filepath: Path = settings.EXPERIMENTS_DATA_DIR / "tree_data_v1.parquet"
 
 # ------------------------------------------------------------------------------
 # Prefect Flow Definition
