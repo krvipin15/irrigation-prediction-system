@@ -54,7 +54,7 @@ def preprocess_dataset(df: pd.DataFrame, preprocess_filepath: Path) -> pd.DataFr
         Input dataset to preprocess. Typically validated prior to this step.
 
     preprocess_filepath: Path
-        Contains preprocessing as joblib. Ready to load and apply on datatset.
+        Contains preprocessing as joblib. Ready to load and apply on dataset.
 
     Returns
     -------
