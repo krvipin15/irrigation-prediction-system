@@ -35,7 +35,7 @@ import pandas as pd
 from prefect import get_run_logger, task
 
 from src.configs import Settings, get_settings
-from src.pipeline import load_dataset
+from src.pipeline.ingestion import load_dataset
 
 if TYPE_CHECKING:
     from logging import Logger, LoggerAdapter
