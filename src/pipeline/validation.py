@@ -52,12 +52,12 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------
 
 settings: Settings = get_settings()
-target_col: str = "Irrigation_Need"
-report_filename: Path = settings.VALIDATION_REPORT_DIR / settings.PANDERA_REPORT_FILENAME
 
 # ---------------------------------------------------------------------------------
 # Schema to verify the columns and index of Pandas DataFrame
 # ---------------------------------------------------------------------------------
+
+target_col: str = "Irrigation_Need"
 
 # Define shared features to ensure consistency between Train and Inference
 shared_columns: dict[str, object] = {
@@ -110,7 +110,7 @@ unseen_data_schema = pa.DataFrameSchema(
     timeout_seconds=300,
     log_prints=True,
 )
-def validate_dataset(df: pd.DataFrame) -> pd.DataFrame:
+def validate_dataset(df: pd.DataFrame, report_filepath: Path) -> pd.DataFrame:
     """
     Validate a dataset against predefined Pandera schemas.
 
@@ -123,6 +123,8 @@ def validate_dataset(df: pd.DataFrame) -> pd.DataFrame:
     ----------
     df : pandas.DataFrame
         Input dataset to validate.
+    report_filepath: Path
+        Path to save the pandera report.
 
     Returns
     -------
@@ -170,7 +172,7 @@ def validate_dataset(df: pd.DataFrame) -> pd.DataFrame:
         }
 
         try:
-            with Path.open(report_filename, "w") as f:
+            with Path.open(report_filepath, "w") as f:
                 json.dump(failure_report, f, indent=4, default=str)
         except (OSError, TypeError, ValueError) as e:
             logger.warning("Could not write JSON report to disk: %s", e)
@@ -183,11 +185,11 @@ def validate_dataset(df: pd.DataFrame) -> pd.DataFrame:
                 f"## Validation Failed\n\n"
                 f"Found **{len(err.failure_cases)}** violations.\n\n"
                 f"### Top Failure Cases (Preview)\n\n{markdown_table}\n\n"
-                f"Check the logs or `{report_filename}` for the full report."
+                f"Check the logs or `{report_filepath}` for the full report."
             ),
         )
 
-        logger.exception("Validation failed! Report saved to %s", report_filename)
+        logger.exception("Validation failed! Report saved to %s", report_filepath)
         raise
 
     except Exception:

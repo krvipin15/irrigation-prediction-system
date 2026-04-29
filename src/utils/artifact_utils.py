@@ -37,30 +37,11 @@ if TYPE_CHECKING:
 settings: Settings = get_settings()
 
 # ------------------------------------------------------------------------------
-# File Paths & Constants
-# ------------------------------------------------------------------------------
-
-raw_filepath: Path = settings.RAW_DATA_DIR / settings.RAW_DATA_FILENAME
-processed_raw_filepath: Path = settings.EXPERIMENTS_DATA_DIR / settings.REF_DATA_FILENAME
-preprocess_filepath: Path = settings.EXP_ARTIFACT_DIR / settings.PREPROCESS_PIPELINE_FILENAME
-encoder_path: Path = settings.EXP_ARTIFACT_DIR / settings.TARGET_ENCODER_FILENAME
-
-MODEL_NAME: str = "best_tree_model"
-MODEL_PATH: Path = settings.MODELS_DIR / settings.MODEL_FILENAME
-
-PATHS_TO_CHECK: list[Path] = [
-    raw_filepath,
-    processed_raw_filepath,
-    preprocess_filepath,
-    encoder_path,
-]
-
-# ------------------------------------------------------------------------------
 # Helper Functions
 # ------------------------------------------------------------------------------
 
 
-def ensure_model_exists(model_name: str = MODEL_NAME, target_path: Path = MODEL_PATH) -> Path | None:
+def ensure_model_exists(model_name: str, target_path: Path) -> Path | None:
     """
     Download the latest version of a model from DagsHub MLflow registry if not present.
 
@@ -72,10 +53,10 @@ def ensure_model_exists(model_name: str = MODEL_NAME, target_path: Path = MODEL_
 
     Parameters
     ----------
-    model_name : str, optional
-        Name of the registered MLflow model, by default ``MODEL_NAME``.
-    target_path : Path, optional
-        Local path where the model will be saved, by default ``MODEL_PATH``.
+    model_name : str
+        Name of the registered MLflow model.
+    target_path : Path
+        Local path where the model will be saved.
 
     Returns
     -------
@@ -132,7 +113,7 @@ def ensure_model_exists(model_name: str = MODEL_NAME, target_path: Path = MODEL_
         raise
 
 
-def ensure_file_exists(paths: list[Path] = PATHS_TO_CHECK) -> None:
+def ensure_file_exists(paths_to_check: list[Path]) -> None:
     """
     Ensure required files exist locally, pulling missing ones via DVC.
 
@@ -142,8 +123,8 @@ def ensure_file_exists(paths: list[Path] = PATHS_TO_CHECK) -> None:
 
     Parameters
     ----------
-    paths : list[Path], optional
-        List of file paths to verify, by default ``PATHS_TO_CHECK``.
+    paths_to_check : list[Path], optional
+        List of file paths to verify.
 
     Raises
     ------
@@ -155,7 +136,7 @@ def ensure_file_exists(paths: list[Path] = PATHS_TO_CHECK) -> None:
     logger: Logger | LoggerAdapter = get_run_logger()
 
     # --- 1. Check for missing files ---
-    missing_files: list[str] = [str(p) for p in paths if not p.exists()]
+    missing_files: list[str] = [str(p) for p in paths_to_check if not p.exists()]
     if not missing_files:
         logger.info("All artifacts present...")
         return

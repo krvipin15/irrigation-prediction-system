@@ -8,7 +8,7 @@ execution tracking.
 
 The inference pipeline loads preprocessed data, applies the trained model
 to generate predictions, optionally decodes them into human-readable labels,
-and persists the results for downstream consumption.
+and returns the results for downstream consumption.
 
 Features
 --------
@@ -17,7 +17,6 @@ Features
 - Support for decoding predictions via a target encoder.
 - Automatic loading of preprocessed datasets from configured storage.
 - Structured output generation with unique identifiers.
-- Persistent storage of predictions in CSV format.
 - Prefect task integration with logging and execution control.
 
 Notes
@@ -45,8 +44,6 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------
 
 settings: Settings = get_settings()
-preprocessed_data_filepath: Path = settings.PREPROCESSED_DATA_DIR / settings.PREPROCESSED_DATA_FILENAME
-output_path: Path = settings.PREDICTIONS_DIR / settings.PREDICTION_FILENAME
 
 # ---------------------------------------------------------------------------------
 # Prefect Task: Model Inference
@@ -60,23 +57,24 @@ output_path: Path = settings.PREDICTIONS_DIR / settings.PREDICTION_FILENAME
     timeout_seconds=300,
     log_prints=True,
 )
-def run_inference(loaded_model, loaded_encoder) -> pd.DataFrame:
+def run_inference(model, encoder, proc_data_path: Path) -> pd.DataFrame:
     """
     Run batch inference using a trained ML model.
 
     This task:
-    1. Loads a trained model (downloads if missing)
+    1. Loads a trained model
     2. Loads preprocessed input data
     3. Performs predictions
     4. Optionally decodes predictions using a target encoder
-    5. Saves prediction results to disk
 
     Parameters
     ----------
-    loaded_model
-        Loaded ml model for inference
-    loaded_encoder
-        Loaded encoder to decode prediction values e.g., 0 -> Low
+    model
+        Loaded ml model for inference.
+    encoder
+        Loaded encoder to decode prediction values e.g., 0 -> Low.
+    proc_data_path: Path
+        Path of preprocessed data file.
 
     Returns
     -------
@@ -91,15 +89,15 @@ def run_inference(loaded_model, loaded_encoder) -> pd.DataFrame:
     logger: Logger | LoggerAdapter = get_run_logger()
 
     # --- 1. Load preprocessed dataset ---
-    logger.info(f"Loading data from {preprocessed_data_filepath}")
-    df = load_dataset(preprocessed_data_filepath)
+    logger.info(f"Loading data from {proc_data_path}")
+    df = load_dataset(proc_data_path)
 
     # Extract features
     X = df.copy()
 
     # --- 2. Perform inference ---
     logger.info(f"Running inference on {len(X)} samples...")
-    raw_predictions = loaded_model.predict(X)
+    raw_predictions = model.predict(X)
 
     # --- 3. Decode predictions ---
     logger.info("Decoding predictions using target_encoder.joblib")
@@ -108,23 +106,12 @@ def run_inference(loaded_model, loaded_encoder) -> pd.DataFrame:
     predictions_2d = raw_predictions.reshape(-1, 1)
 
     # Inverse transform and then flatten back to 1D so it fits in a DataFrame column
-    predictions = loaded_encoder.inverse_transform(predictions_2d).flatten()
+    predictions = encoder.inverse_transform(predictions_2d).flatten()
 
     # --- 4. Attach predictions to dataset ---
     results_df = df.copy()
     results_df["Irrigation_Need"] = predictions
 
     logger.info("Inference completed successfully.")
-
-    # --- 5. Save predictions ---
-    results_df.index = range(630000, 630000 + len(results_df))
-
-    # Give the index a name directly, then reset it
-    results_df.index.name = "id"
-    output_df = results_df.reset_index()[["id", "Irrigation_Need"]]
-
-    # Save predictions to CSV
-    output_df.to_csv(output_path, index=False)
-    logger.info(f"Predictions saved to {output_path}")
 
     return results_df

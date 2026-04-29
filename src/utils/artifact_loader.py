@@ -40,25 +40,22 @@ from src.configs import Settings, get_settings
 settings: Settings = get_settings()
 
 # ------------------------------------------------------------------------------
-# File paths & constants
-# ------------------------------------------------------------------------------
-
-preprocess_filepath: Path = settings.EXP_ARTIFACT_DIR / settings.PREPROCESS_PIPELINE_FILENAME
-encoder_path: Path = settings.EXP_ARTIFACT_DIR / settings.TARGET_ENCODER_FILENAME
-model_path: Path = settings.MODELS_DIR / settings.MODEL_FILENAME
-
-# ------------------------------------------------------------------------------
 # Load models and joblib files in cache
 # ------------------------------------------------------------------------------
 
 
 @lru_cache
-def get_model():
+def get_model(saved_model_path: Path) -> object:
     """
     Load and return the trained machine learning model.
 
     The model is loaded from disk using `skops.io.load`, which provides
     a secure alternative to pickle-based deserialization for sklearn models.
+
+    Parameters
+    ----------
+    saved_model_path: Path
+        Path of saved model.
 
     Returns
     -------
@@ -79,20 +76,25 @@ def get_model():
 
     Examples
     --------
-    >>> model = get_model()
+    >>> model = get_model(saved_model_path)
     >>> predictions = model.predict(X)
     """
-    return sio.load(model_path)
+    return sio.load(saved_model_path)
 
 
 @lru_cache
-def get_preprocessor():
+def get_preprocessor(saved_prep_path: Path) -> object:
     """
     Load and return the preprocessing pipeline.
 
     The preprocessing artifact is typically a serialized scikit-learn
     pipeline (e.g., ColumnTransformer, Pipeline) used to transform raw
     input features into a model-compatible format.
+
+    Parameters
+    ----------
+    saved_prep_path: Path
+        Path of saved preprocess pipeline.
 
     Returns
     -------
@@ -113,19 +115,24 @@ def get_preprocessor():
 
     Examples
     --------
-    >>> preprocessor = get_preprocessor()
+    >>> preprocessor = get_preprocessor(saved_prep_path)
     >>> X_transformed = preprocessor.transform(df)
     """
-    return joblib.load(preprocess_filepath)
+    return joblib.load(saved_prep_path)
 
 
 @lru_cache
-def get_encoder():
+def get_encoder(saved_encoder_path: Path) -> object:
     """
     Load and return the target encoder.
 
     The encoder is used to convert model output labels (e.g., numeric
     predictions) into human-readable categories via inverse transformation.
+
+    Parameters
+    ----------
+    saved_encoder_path: Path
+        Path of saved target encoder.
 
     Returns
     -------
@@ -146,7 +153,7 @@ def get_encoder():
 
     Examples
     --------
-    >>> encoder = get_encoder()
+    >>> encoder = get_encoder(saved_encoder_path)
     >>> labels = encoder.inverse_transform(predictions.reshape(-1, 1))
     """
-    return joblib.load(encoder_path)
+    return joblib.load(saved_encoder_path)

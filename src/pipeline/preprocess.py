@@ -47,7 +47,6 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------
 
 settings: Settings = get_settings()
-preprocessed_data_filepath: Path = settings.PREPROCESSED_DATA_DIR / settings.PREPROCESSED_DATA_FILENAME
 
 # ---------------------------------------------------------------------------------
 # Prefect Task: Encoding the dataset
@@ -61,7 +60,7 @@ preprocessed_data_filepath: Path = settings.PREPROCESSED_DATA_DIR / settings.PRE
     timeout_seconds=300,
     log_prints=True,
 )
-def preprocess_dataset(df: pd.DataFrame, loaded_preprocessor) -> pd.DataFrame:
+def preprocess_dataset(df: pd.DataFrame, preprocessor, prep_data_path: Path) -> pd.DataFrame:
     """
     Apply a pre-trained preprocessing pipeline to a dataset.
 
@@ -73,9 +72,10 @@ def preprocess_dataset(df: pd.DataFrame, loaded_preprocessor) -> pd.DataFrame:
     ----------
     df : pandas.DataFrame
         Input dataset to preprocess. Typically validated prior to this step.
-
-    loaded_preprocessor
+    preprocessor
         Loaded serialized preprocessing artifact ready to apply on dataset.
+    prep_data_path
+        Path to save the preprocessed data.
 
     Returns
     -------
@@ -92,7 +92,7 @@ def preprocess_dataset(df: pd.DataFrame, loaded_preprocessor) -> pd.DataFrame:
 
     Examples
     --------
-    >>> transformed_df = preprocess_dataset(df, preprocessed_joblib)
+    >>> transformed_df = preprocess_dataset(df, preprocessed_joblib, prep_data_path)
 
     >>> # Output ready for model inference
     >>> transformed_df.shape
@@ -101,14 +101,14 @@ def preprocess_dataset(df: pd.DataFrame, loaded_preprocessor) -> pd.DataFrame:
     logger.info("Starting data transformation...")
 
     # --- 1. Apply transformation ---
-    transformed_df = loaded_preprocessor.transform(df)
+    transformed_df = preprocessor.transform(df)
 
     # If the preprocessor returns a numpy array, convert it back to DataFrame
     if isinstance(transformed_df, np.ndarray):
-        transformed_df = pd.DataFrame(transformed_df, columns=loaded_preprocessor.get_feature_names_out())
+        transformed_df = pd.DataFrame(transformed_df, columns=preprocessor.get_feature_names_out())
 
     # --- 2. Save processed data ---
-    transformed_df.to_parquet(preprocessed_data_filepath)
-    logger.info("Preprocessing is complete and data is saved at %s", preprocessed_data_filepath)
+    transformed_df.to_parquet(prep_data_path)
+    logger.info("Preprocessing is complete and data is saved at %s", prep_data_path)
 
     return transformed_df
