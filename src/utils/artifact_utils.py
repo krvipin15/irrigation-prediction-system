@@ -25,7 +25,7 @@ import skops.io as sio
 from mlflow.tracking import MlflowClient
 from prefect import get_run_logger
 
-from src.configs.settings import Settings, get_settings
+from src.configs import Settings, get_settings
 
 if TYPE_CHECKING:
     from logging import Logger, LoggerAdapter
@@ -60,9 +60,9 @@ PATHS_TO_CHECK: list[Path] = [
 # ------------------------------------------------------------------------------
 
 
-def download_model(model_name: str = MODEL_NAME, target_path: Path = MODEL_PATH) -> Path | None:
+def ensure_model_exists(model_name: str = MODEL_NAME, target_path: Path = MODEL_PATH) -> Path | None:
     """
-    Download the latest version of a model from DagsHub MLflow registry.
+    Download the latest version of a model from DagsHub MLflow registry if not present.
 
     This function:
     1. Initializes DagsHub MLflow tracking.

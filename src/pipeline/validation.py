@@ -1,13 +1,35 @@
 """
-Dataset validation module.
+Data Validation Pipeline.
 
-This module defines schemas for validating agricultural datasets used in
-irrigation prediction pipelines. It supports both training (with target column)
-and inference (without target column) datasets.
+This module defines schema-based validation logic for datasets using
+Pandera, ensuring data quality and structural consistency before
+downstream processing. It is designed to operate within a Prefect-based
+pipeline, providing robust validation, detailed error reporting, and
+observability through artifacts.
 
-Validation is performed using Pandera with strict schema enforcement, type
-coercion, and detailed error reporting. Integrated with Prefect for logging
-and observability.
+The validation pipeline distinguishes between training and inference
+datasets by detecting the presence of the target column
+(`Irrigation_Need`). It applies strict schema checks including data types,
+value ranges, categorical constraints, and required columns.
+
+Features
+--------
+- Schema validation using Pandera with strict and coercive rules.
+- Separate schemas for training (with target) and inference (without target).
+- Comprehensive validation checks including:
+  - Numeric ranges (e.g., pH, temperature, humidity)
+  - Non-negative and positive constraints
+  - Categorical enforcement
+- Lazy validation to aggregate all errors in a single run.
+- Automatic generation of detailed failure reports in JSON format.
+- Prefect artifact integration for visual inspection of validation issues.
+- Logging support for traceability and debugging.
+
+Notes
+-----
+- Validation reports are saved to a configured directory defined in settings.
+- The schema is shared across training and inference to ensure feature consistency.
+- Missing optional dependencies or incorrect dtypes may trigger validation errors.
 """
 
 import json
@@ -20,15 +42,18 @@ from pandera.errors import SchemaErrors
 from prefect import get_run_logger, task
 from prefect.artifacts import create_markdown_artifact
 
-from src.configs.settings import Settings, get_settings
+from src.configs import Settings, get_settings
 
 if TYPE_CHECKING:
     from logging import Logger, LoggerAdapter
 
-# Setup application configs
+# ---------------------------------------------------------------------
+# Settings Initialization
+# ---------------------------------------------------------------------
+
 settings: Settings = get_settings()
-report_filename: Path = settings.VALIDATION_REPORT_DIR / settings.PANDERA_REPORT_FILENAME
 target_col: str = "Irrigation_Need"
+report_filename: Path = settings.VALIDATION_REPORT_DIR / settings.PANDERA_REPORT_FILENAME
 
 # ---------------------------------------------------------------------------------
 # Schema to verify the columns and index of Pandas DataFrame
@@ -112,13 +137,6 @@ def validate_dataset(df: pd.DataFrame) -> pd.DataFrame:
     Exception
         Propagates unexpected errors encountered during validation.
 
-    Notes
-    -----
-    - Validation is performed with `lazy=True`, collecting all errors before raising.
-    - Type coercion is enabled via schema configuration (`coerce=True`).
-    - Strict mode ensures no extra or missing columns are allowed.
-    - Logs include both summary and detailed failure diagnostics.
-
     Examples
     --------
     >>> df_valid = validate_dataset(df)
@@ -136,7 +154,7 @@ def validate_dataset(df: pd.DataFrame) -> pd.DataFrame:
             validated_df = unseen_data_schema.validate(df, lazy=True)
 
     except SchemaErrors as err:
-        # 1. Generate failure report data
+        # --- 1. Generate failure report data ---
         summary: dict = err.failure_cases.groupby(["column", "check"]).size().to_dict()
         summary_serializable: dict = {str(k): v for k, v in summary.items()}
 
@@ -157,7 +175,7 @@ def validate_dataset(df: pd.DataFrame) -> pd.DataFrame:
         except (OSError, TypeError, ValueError) as e:
             logger.warning("Could not write JSON report to disk: %s", e)
 
-        # 3. Prefect Integration: Create a Markdown Artifact
+        # --- 2. Prefect Integration: Create a Markdown Artifact ---
         markdown_table = err.failure_cases.head(10).to_markdown()
         create_markdown_artifact(
             key="validation-report",

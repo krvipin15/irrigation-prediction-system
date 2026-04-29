@@ -1,18 +1,29 @@
 """
-Data preprocessing constants.
+Data Configuration Module.
 
-This module defines standardized constants used during data ingestion
-and preprocessing, including representations of missing values,
-boolean mappings, and optimized data types for memory efficiency.
+This module defines standardized data handling configurations used across
+the machine learning pipeline. It centralizes definitions for missing values,
+boolean parsing, and optimized data types to ensure consistency, memory
+efficiency, and robust data ingestion.
 
-These constants ensure consistency across the data pipeline and
-improve performance by enforcing uniform parsing and type handling.
+The configurations in this module are primarily used during data loading,
+cleaning, and preprocessing stages to normalize raw input data into a
+structured and model-compatible format.
 
-Configuration Scope
--------------------
-- Missing value normalization
-- Boolean value normalization
-- Data type optimization for tabular datasets
+Features
+--------
+- Comprehensive definitions of null value representations commonly found
+  in real-world datasets.
+- Standardized mappings for boolean values (true/false variants).
+- Optimized pandas dtypes for improved memory usage and performance.
+- Centralized configuration to ensure consistency across pipeline stages.
+
+Notes
+-----
+- Using "Float32" instead of "float64" significantly reduces memory footprint.
+- "category" dtype improves performance for encoding and modeling steps.
+- Consistent NA handling prevents silent data quality issues.
+- This module should remain lightweight and free of runtime logic.
 """
 
 # Types of null values

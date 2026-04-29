@@ -1,10 +1,34 @@
 """
-Monitoring Module for Data Drift Detection using Evidently.
+Data Monitoring Pipeline.
 
-This module defines a Prefect task that evaluates data drift between
-reference and current datasets using Evidently's built-in presets.
-It generates an HTML report and optionally fails the pipeline if
-significant drift is detected.
+This module implements data drift detection and monitoring using the
+Evidently library, enabling continuous evaluation of data quality and
+distribution changes between reference (baseline) and current datasets.
+It is integrated into a Prefect workflow to support automated monitoring
+in production ML pipelines.
+
+The monitoring pipeline compares datasets at the feature level to detect
+statistical deviations that may impact model performance. It generates
+comprehensive reports and can optionally enforce strict failure policies
+when drift exceeds acceptable thresholds.
+
+Features
+--------
+- Data drift detection using Evidently presets.
+- Comparison between reference (training/baseline) and current datasets.
+- Support for both numerical and categorical feature monitoring.
+- Automatic dtype normalization for compatibility with Evidently.
+- HTML report generation for detailed visual inspection.
+- Configurable failure behavior when drift is detected.
+- Prefect task integration with logging and observability.
+
+Notes
+-----
+- Input datasets are defensively copied to prevent mutation.
+- Data types are normalized (e.g., int8 → int, Float32 → float32,
+  boolean → bool) to ensure compatibility with Evidently.
+- Monitoring thresholds and behavior can be controlled via parameters.
+- HTML reports should be reviewed for detailed feature-level insights.
 """
 
 from pathlib import Path
@@ -16,12 +40,15 @@ from evidently.core.report import Snapshot
 from evidently.presets import DataDriftPreset, DataSummaryPreset
 from prefect import get_run_logger, task
 
-from src.configs.settings import Settings, get_settings
+from src.configs import Settings, get_settings
 
 if TYPE_CHECKING:
     from logging import Logger, LoggerAdapter
 
-# Application configs
+# ---------------------------------------------------------------------
+# Settings Initialization
+# ---------------------------------------------------------------------
+
 settings: Settings = get_settings()
 
 # ------------------------------------------------------------------------------
@@ -115,7 +142,7 @@ def generate_evidently_report(
     current_data = current_data.copy()
     reference_data = reference_data.copy()
 
-    # 0: Normalize dtypes for Evidently compatibility
+    # --- 0: Normalize dtypes for Evidently compatibility ---
     for df in [current_data, reference_data]:
         int_cols = df.select_dtypes(include=["int8"]).columns
         float_cols = df.select_dtypes(include=["Float32"]).columns
@@ -125,15 +152,15 @@ def generate_evidently_report(
         df[float_cols] = df[float_cols].astype("float32")
         df[bool_cols] = df[bool_cols].astype("bool")
 
-    # 1. Convert pandas DataFrames to Evidently Datasets
+    # --- 1. Convert pandas DataFrames to Evidently Datasets ---
     current_dataset: Dataset = Dataset.from_pandas(current_data, data_definition=schema)
     reference_dataset: Dataset = Dataset.from_pandas(reference_data, data_definition=schema)
 
-    # 2. Generate Evidently Report
+    # --- 2. Generate Evidently Report ---
     report = Report(metrics=[DataDriftPreset(), DataSummaryPreset()])
     eval_report: Snapshot = report.run(reference_data=reference_dataset, current_data=current_dataset)
 
-    # 3. Save HTML Reports
+    # --- 3. Save HTML Reports ---
     html_report_filename: Path = (
         settings.MONITORING_REPORT_DIR / f"{report_suffix}_{settings.EVIDENTLY_HTML_FILENAME}"
     )
@@ -141,7 +168,7 @@ def generate_evidently_report(
     eval_report.save_html(str(html_report_filename))
     logger.info("Report saved locally to %s", settings.MONITORING_REPORT_DIR)
 
-    # 4. Analyze Results
+    # --- 4. Analyze Results ---
     drift_detected = False
     drift_share = 0.0
 
@@ -155,7 +182,7 @@ def generate_evidently_report(
 
         logger.info(f"Drift Detected: {drift_detected} ({drift_share * 100:.2f}% of features)")
 
-        # 5. Optionally fail pipeline if drift is detected
+        # --- 5. Optionally fail pipeline if drift is detected ---
         if drift_detected and fail_on_drift:
             error_msg = f"CRITICAL: Data drift detected in {report_suffix} data!"
             logger.error(error_msg)
@@ -164,7 +191,7 @@ def generate_evidently_report(
     except KeyError as e:
         logger.warning(f"Could not extract drift metrics: {e}. Check HTML report manually.")
 
-    # 6. Return structured result
+    # --- 6. Return structured result ---
     return {
         "status": "success",
         "drift_detected": drift_detected,

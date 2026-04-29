@@ -1,13 +1,31 @@
 """
-Data loading module.
+Data Ingestion Pipeline.
 
-This module provides a flexible dataset loader that supports multiple file
-formats using pandas. It automatically selects the appropriate pandas reader
-based on file extension and integrates with Prefect's task system for logging,
-retries, and observability.
+This module provides functionality for loading datasets from disk into
+pandas DataFrame objects in a flexible and format-agnostic manner. It is
+designed as part of a data pipeline and integrates with Prefect for task
+orchestration, logging, and execution control.
 
-Supported formats include CSV, Parquet, Excel, JSON, Pickle, XML, Feather,
-HDF5, Stata, and ORC.
+The ingestion pipeline supports multiple file formats by mapping file
+extensions to their corresponding pandas reader functions. It ensures
+robust handling of common issues such as missing files, unsupported
+formats, and missing dependencies.
+
+Features
+--------
+- Supports a wide range of file formats including CSV, Parquet, Excel,
+  JSON, Pickle, XML, Feather, HDF5, Stata, and ORC.
+- Automatic detection of file type based on extension.
+- Prefect task integration with logging, retries, and timeout handling.
+- Graceful error handling with informative log messages.
+- Extensible design for adding new file loaders.
+
+Notes
+-----
+- Additional keyword arguments are forwarded to the underlying pandas
+  reader functions, allowing full customization of loading behavior.
+- Some formats may require optional dependencies (e.g., `pyarrow`,
+  `openpyxl`, `fastparquet`).
 """
 
 from pathlib import Path
@@ -83,13 +101,6 @@ def load_dataset(input_file: str | Path, **kwargs: object) -> pd.DataFrame:
         If a required dependency for the file format is missing.
     Exception
         Propagates any exception raised during file loading.
-
-    Notes
-    -----
-    - If the loader does not return a DataFrame, an attempt is made to coerce
-      the result into one.
-    - Logging is handled via Prefect's `get_run_logger`.
-    - Supported file extensions are defined in the `loaders` mapping.
 
     Examples
     --------

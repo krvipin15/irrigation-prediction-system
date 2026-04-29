@@ -1,13 +1,31 @@
 """
-Application configuration module.
+Application Settings Module.
 
-This module defines a centralized configuration system for the irrigation
-prediction pipeline. It manages environment variables, file paths, artifact
-locations, and integrations with external services such as MLflow, DagsHub,
-and Supabase.
+This module defines the centralized configuration system for the entire
+machine learning pipeline using Pydantic Settings. It manages environment
+variables, file paths, artifact locations, and external service credentials,
+ensuring consistency and reliability across all components of the system.
 
-The configuration is environment-aware and enforces required fields depending
-on the deployment stage (development, staging, production).
+The configuration is environment-aware and supports automatic validation,
+directory creation, and secure handling of sensitive information.
+
+Features
+--------
+- Centralized configuration using Pydantic `BaseSettings`.
+- Automatic loading from environment variables and `.env` files.
+- Dynamic timestamp-based file naming for reproducibility.
+- Automatic directory creation for all required paths.
+- Environment-aware validation (development, staging, production, test).
+- Secure handling of secrets (e.g., tokens) using `SecretStr`.
+- Cached singleton access for performance and consistency.
+
+Notes
+-----
+- All paths are resolved relative to the project base directory.
+- Timestamp-based filenames prevent overwriting previous artifacts.
+- Missing required environment variables will raise a ValueError in
+  non-test environments.
+- This module should be imported wherever configuration is needed.
 """
 
 from datetime import UTC, datetime
@@ -33,70 +51,6 @@ class Settings(BaseSettings):
 
     The configuration is environment-aware and performs validation to ensure
     that all required settings are present for non-test environments.
-
-    Attributes
-    ----------
-    Core Settings
-        PROJECT_NAME : str
-            Human-readable project name.
-        ENVIRONMENT : str
-            Active runtime environment (development, staging, production, test).
-
-    Artifacts & Reporting
-        ARTIFACTS_DIR : Path
-            Run-specific root directory for current execution outputs.
-
-    Data Directories & Filenames
-        RAW_DATA_DIR / RAW_DATA_FILENAME : Path, str
-            Directory and filename for the raw input datasets.
-        UNSEEN_DATA_DIR / UNSEEN_DATA_FILENAME : Path, str
-            Directory and filename for inference-time datasets.
-        PREPROCESSED_DATA_DIR / PREPROCESSED_DATA_FILENAME : Path, str
-            Directory and filename for the main pipeline's processed data.
-        EXPERIMENTS_DATA_DIR : Path
-            Directory for specialized experiment datasets (Linear/Tree variants).
-        PREDICTIONS_DIR / PREDICTION_FILENAME : Path, str
-            Directory and filename for local prediction outputs.
-
-    Models & Transformers
-        MODELS_DIR / MODEL_FILENAME : Path, str
-            Location and name of the production-ready model artifact.
-        EXP_ARTIFACT_DIR : Path
-            Directory for experiment-generated artifacts (transformers).
-        PREPROCESS_PIPELINE_FILENAME / TARGET_ENCODER_FILENAME : str
-            Filenames for specific preprocessing joblib objects.
-
-    Reporting
-        VALIDATION_REPORT_DIR / PANDERA_REPORT_FILENAME : Path, str
-            Directory and filename for Pandera data validation results.
-        MONITORING_REPORT_DIR / EVIDENTLY_HTML_FILENAME : Path, str
-            Directory and filename for Evidently monitoring/drift reports.
-
-    Experiment Tracking (MLflow & DagsHub)
-        MLFLOW_TRACKING_URI : AnyHttpUrl | None
-            MLflow tracking server endpoint.
-        MLFLOW_REGISTERED_MODEL_NAME : str
-            Name used to identify the model in the MLflow registry.
-        DAGSHUB_REPO_OWNER / DAGSHUB_REPO_NAME : str | None
-            DagsHub repository ownership and project identifiers.
-        DAGSHUB_TOKEN : SecretStr | None
-            Sensitive token for DagsHub authentication.
-
-    Storage & Monitoring (Supabase)
-        SUPABASE_URL : AnyHttpUrl | None
-            Supabase project endpoint.
-        SUPABASE_KEY : SecretStr | None
-            Secret key for Supabase database access.
-        SUPABASE_PREDICTIONS_TABLE / SUPABASE_REPORTS_TABLE : str
-            Database table names for storing inference results and monitoring logs.
-
-    Security & Serving (FastAPI)
-        JWT_SECRET_KEY : SecretStr | None
-            Secret key used for authentication and token signing.
-        JWT_ALGORITHM : str
-            Algorithm used for JWT encoding (default: HS256).
-        ACCESS_TOKEN_EXPIRE_MINUTES : int
-            Duration in minutes before a JWT token expires.
     """
 
     # Configuration for Pydantic Settings
@@ -208,23 +162,6 @@ class Settings(BaseSettings):
     DAGSHUB_REPO_NAME: str | None = None
     DAGSHUB_TOKEN: SecretStr | None = None
 
-    # ---------------------------------------------------------
-    # Supabase (Metadata, Predictions, Evidently JSON Reports)
-    # ---------------------------------------------------------
-
-    SUPABASE_URL: AnyHttpUrl | None = None
-    SUPABASE_KEY: SecretStr | None = None
-    SUPABASE_PREDICTIONS_TABLE: str = "preds"
-    SUPABASE_REPORTS_TABLE: str = "monitoring_reports"
-
-    # ---------------------------------------------------------
-    # FastAPI Security Config (Serving)
-    # ---------------------------------------------------------
-
-    JWT_SECRET_KEY: SecretStr | None = None
-    JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
-
     @model_validator(mode="after")
     def validate_required_fields(self) -> Self:
         """
@@ -252,9 +189,6 @@ class Settings(BaseSettings):
                 "DAGSHUB_REPO_NAME": self.DAGSHUB_REPO_NAME,
                 "DAGSHUB_TOKEN": self.DAGSHUB_TOKEN,
                 "MLFLOW_TRACKING_URI": self.MLFLOW_TRACKING_URI,
-                "SUPABASE_URL": self.SUPABASE_URL,
-                "SUPABASE_KEY": self.SUPABASE_KEY,
-                "JWT_SECRET_KEY": self.JWT_SECRET_KEY,
             }
 
             missing: list[str] = [k for k, v in required_fields.items() if v is None]
