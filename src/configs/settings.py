@@ -67,65 +67,63 @@ class Settings(BaseSettings):
     # Project and Environment
     # ---------------------------------------------------------
 
-    PROJECT_NAME: str = "Irrigation Prediction System"
-    ENVIRONMENT: str = Field(default="development", pattern="^(development|staging|production|test)$")
+    PROJ_NAME: str = "Irrigation Prediction System"
+    ENV: str = Field(default="development", pattern="^(development|staging|production|test)$")
 
     # ---------------------------------------------------------
     # Centralized Directories & Filenames
     # ---------------------------------------------------------
 
-    ARTIFACTS_DIR: Path = BASE_DIR / "artifacts"
+    # Root
+    ART_DIR: Path = BASE_DIR / "artifacts"
+    DATA_DIR: Path = ART_DIR / "data"
 
-    # Contains raw dataset with features and target used for training
-    RAW_DATA_DIR: Path = ARTIFACTS_DIR / "data" / "raw"
-    RAW_DATA_FILENAME: str = "raw_v1.csv"
+    # Data Sources
+    RAW_DIR: Path = DATA_DIR / "raw"
+    RAW_FILE: str = "raw_v1.csv"
 
-    # Contains dataset with features only used for testing
-    UNSEEN_DATA_DIR: Path = ARTIFACTS_DIR / "data" / "unseen"
-    UNSEEN_DATA_FILENAME: str = "unseen_v1.csv"
+    UNSEEN_DIR: Path = DATA_DIR / "unseen"
+    UNSEEN_FILE: str = "unseen_v1.csv"
 
-    # Preprocessed dataset for main pipeline
-    PREPROCESSED_DATA_DIR: Path = ARTIFACTS_DIR / "data" / "processed"
-    PREPROCESSED_DATA_FILENAME: str = f"processed_{timestamp}.parquet"
+    PROC_DIR: Path = DATA_DIR / "proc"
+    PROC_FILE: str = f"proc_{timestamp}.parquet"
 
-    # Preprocessed dataset for experiment notebooks
-    EXPERIMENTS_DATA_DIR: Path = ARTIFACTS_DIR / "data" / "experiments"
-    LINEAR_FILENAME: str = "linear_data_v1.parquet"
-    TREE_FILENAME: str = "tree_data_v1.parquet"
+    # Experimentation
+    EXP_DIR: Path = DATA_DIR / "exp"
+    LIN_FILE: str = "lin_v1.parquet"
+    TREE_FILE: str = "tree_v1.parquet"
+    REF_FILE: str = TREE_FILE
 
-    # Reference data for evidently
-    REF_DATA_FILENAME: str = "tree_data_v1.parquet"
+    # Output
+    PRED_DIR: Path = DATA_DIR / "pred"
+    PRED_FILE: str = f"pred_{timestamp}.csv"
 
-    # Predictions
-    PREDICTIONS_DIR: Path = ARTIFACTS_DIR / "data" / "predictions"
-    PREDICTION_FILENAME: str = f"prediction_{timestamp}.csv"
+    # Models & Objects
+    MODEL_DIR: Path = ART_DIR / "models"
+    MODEL_FILE: str = "best_v1.skops"
 
-    # Best model from MLFlow registry
-    MODELS_DIR: Path = ARTIFACTS_DIR / "models"
-    MODEL_FILENAME: str = "best_model_v1.skops"
+    OBJ_DIR: Path = ART_DIR / "objects"
+    PIPE_FILE: str = "pipe_v1.joblib"
+    ENC_FILE: str = "enc_v1.joblib"
 
-    # Joblib files
-    EXP_ARTIFACT_DIR: Path = ARTIFACTS_DIR / "transformers"
-    PREPROCESS_PIPELINE_FILENAME: str = "preprocessing_v1.joblib"
-    TARGET_ENCODER_FILENAME: str = "target_encoder_v1.joblib"
+    # Reports
+    VAL_DIR: Path = ART_DIR / "reports/val"
+    VAL_FILE: str = f"val_{timestamp}.json"
 
-    # Reports directory
-    VALIDATION_REPORT_DIR: Path = ARTIFACTS_DIR / "reports" / "validation"
-    PANDERA_REPORT_FILENAME: str = f"report_{timestamp}.json"
-    MONITORING_REPORT_DIR: Path = ARTIFACTS_DIR / "reports" / "monitoring"
-    EVIDENTLY_HTML_FILENAME: str = f"report_{timestamp}.html"
+    MON_DIR: Path = ART_DIR / "reports/mon"
+    MON_FILE: str = f"mon_{timestamp}.html"
 
     @field_validator(
-        "ARTIFACTS_DIR",
-        "RAW_DATA_DIR",
-        "UNSEEN_DATA_DIR",
-        "PREPROCESSED_DATA_DIR",
-        "EXPERIMENTS_DATA_DIR",
-        "PREDICTIONS_DIR",
-        "EXP_ARTIFACT_DIR",
-        "MODELS_DIR",
-        "VALIDATION_REPORT_DIR",
-        "MONITORING_REPORT_DIR",
+        "ART_DIR",
+        "RAW_DIR",
+        "UNSEEN_DIR",
+        "PROC_DIR",
+        "EXP_DIR",
+        "PRED_DIR",
+        "OBJ_DIR",
+        "MODEL_DIR",
+        "VAL_DIR",
+        "MON_DIR",
         mode="after",
     )
     @classmethod
@@ -183,7 +181,7 @@ class Settings(BaseSettings):
           staging, and production environments.
         - Skips strict validation in test environments.
         """
-        if self.ENVIRONMENT in ("development", "staging", "production"):
+        if self.ENV in ("development", "staging", "production"):
             required_fields: dict = {
                 "DAGSHUB_REPO_OWNER": self.DAGSHUB_REPO_OWNER,
                 "DAGSHUB_REPO_NAME": self.DAGSHUB_REPO_NAME,

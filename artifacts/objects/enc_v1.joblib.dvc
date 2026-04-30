@@ -2,4 +2,4 @@ outs:
 - md5: 0913981f3a7bd4fd7387a89a36d7fb25
   size: 737
   hash: md5
-  path: target_encoder_v1.joblib
+  path: enc_v1.joblib
