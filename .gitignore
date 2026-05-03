@@ -25,21 +25,16 @@ catboost_info
 #    Binaries are DVC-managed; only pointers and folder skeletons go to Git
 # =============================================================================
 
-/artifacts/**/model/*
-!/artifacts/**/model/.gitkeep
-!/artifacts/**/model/*.dvc
+/artifacts/models/*
+!/artifacts/models/.gitkeep
+!/artifacts/models/*.dvc
 
-/artifacts/**/report/*
-!/artifacts/**/report/.gitkeep
+/artifacts/reports/*
+!/artifacts/reports/.gitkeep
 
-/artifacts/**/monitoring/*
-!/artifacts/**/monitoring/.gitkeep
-
-/artifacts/**/mlflow/*
-!/artifacts/**/mlflow/.gitkeep
-
-/artifacts/**/logs/*
-!/artifacts/**/logs/.gitkeep
+/artifacts/objects/*
+!/artifacts/objects/.gitkeep
+!/artifacts/objects/*.dvc
 
 
 # =============================================================================
