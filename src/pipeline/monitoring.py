@@ -93,12 +93,12 @@ schema = DataDefinition(
     timeout_seconds=300,
     log_prints=True,
 )
-def generate_evidently_report(
+def gen_report(
     current_data: pd.DataFrame,
     reference_data: pd.DataFrame,
     report_suffix: str = "preprocessed",
     fail_on_drift: bool = True,
-) -> dict[str, object]:
+) -> None:
     """
     Generate an Evidently report to detect data drift between datasets.
 
@@ -120,16 +120,7 @@ def generate_evidently_report(
 
     Returns
     -------
-    dict[str, object]
-        A dictionary containing:
-        - status : str
-            Execution status ("success").
-        - drift_detected : bool
-            Whether dataset drift was detected.
-        - drift_share : float
-            Fraction of features showing drift.
-        - report_paths : dict
-            Paths to generated report artifacts.
+    None
 
     Raises
     ------
@@ -161,12 +152,9 @@ def generate_evidently_report(
     eval_report: Snapshot = report.run(reference_data=reference_dataset, current_data=current_dataset)
 
     # --- 3. Save HTML Reports ---
-    html_report_filename: Path = (
-        settings.MONITORING_REPORT_DIR / f"{report_suffix}_{settings.EVIDENTLY_HTML_FILENAME}"
-    )
-
-    eval_report.save_html(str(html_report_filename))
-    logger.info("Report saved locally to %s", settings.MONITORING_REPORT_DIR)
+    html_file: Path = settings.MON_DIR / f"{report_suffix}_{settings.MON_FILE}"
+    eval_report.save_html(str(html_file))
+    logger.info("Report saved locally: %s", html_file)
 
     # --- 4. Analyze Results ---
     drift_detected = False
@@ -190,11 +178,3 @@ def generate_evidently_report(
 
     except KeyError as e:
         logger.warning(f"Could not extract drift metrics: {e}. Check HTML report manually.")
-
-    # --- 6. Return structured result ---
-    return {
-        "status": "success",
-        "drift_detected": drift_detected,
-        "drift_share": drift_share,
-        "report_paths": {"html": str(html_report_filename)},
-    }

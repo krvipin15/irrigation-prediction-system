@@ -26,7 +26,7 @@ monitoring
 
 from src.pipeline.inference import run_inference
 from src.pipeline.ingestion import load_dataset
-from src.pipeline.monitoring import generate_evidently_report
+from src.pipeline.monitoring import gen_report
 from src.pipeline.preprocess import preprocess_dataset
 from src.pipeline.validation import validate_dataset
 
@@ -35,5 +35,5 @@ __all__: list[str] = [
     "validate_dataset",
     "preprocess_dataset",
     "run_inference",
-    "generate_evidently_report",
+    "gen_report",
 ]
