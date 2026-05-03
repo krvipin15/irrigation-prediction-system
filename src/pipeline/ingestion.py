@@ -29,7 +29,7 @@ Notes
 """
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 from prefect import get_run_logger, task
@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 # Map file extensions to pandas data loading functions
 # ---------------------------------------------------------------------------------
 
-loaders: dict = {
+LOADERS: dict = {
     ".csv": pd.read_csv,
     ".parquet": pd.read_parquet,
     ".xlsx": pd.read_excel,
@@ -67,9 +67,8 @@ loaders: dict = {
     description="Load various file formats into a pandas DataFrame.",
     tags=["ingestion", "pipeline"],
     timeout_seconds=300,
-    log_prints=True,
 )
-def load_dataset(input_file: str | Path, **kwargs: object) -> pd.DataFrame:
+def load_dataset(input_file: str | Path, **kwargs: Any) -> pd.DataFrame:
     """
     Load a dataset from disk into a pandas DataFrame.
 
@@ -82,7 +81,7 @@ def load_dataset(input_file: str | Path, **kwargs: object) -> pd.DataFrame:
     ----------
     input_file : str or pathlib.Path
         Path to the input dataset file.
-    **kwargs : object
+    **kwargs : Any
         Additional keyword arguments passed to the corresponding pandas
         reader function (e.g., `pd.read_csv`, `pd.read_parquet`, etc.).
 
@@ -112,7 +111,7 @@ def load_dataset(input_file: str | Path, **kwargs: object) -> pd.DataFrame:
     file_path: Path = Path(input_file).resolve()
     log: Logger | LoggerAdapter[Logger] = get_run_logger()
 
-    # Check file exists
+    # --- 1. Validation ---
     if not file_path.is_file():
         msg = f"File not found at path: {file_path}"
         log.error(msg)
@@ -120,16 +119,18 @@ def load_dataset(input_file: str | Path, **kwargs: object) -> pd.DataFrame:
 
     # Check extension is supported or not
     ext: str = file_path.suffix.lower()
-    if ext not in loaders:
-        supported: str = ", ".join(loaders.keys())
+    if ext not in LOADERS:
+        supported: str = ", ".join(LOADERS.keys())
         msg = f"Unsupported extension '{ext}'. Supported: {supported}"
         log.error(msg)
         raise ValueError(msg)
 
+    # --- 2. Execution ---
     try:
         log.info("Loading %s...", file_path.name)
-        result: pd.DataFrame = loaders[ext](file_path, **kwargs)
+        result: pd.DataFrame = LOADERS[ext](file_path, **kwargs)
 
+        # Handle cases where pandas returns an iterator/reader instead of a DataFrame
         if not isinstance(result, pd.DataFrame):
             log.warning("Loader returned %s instead of DataFrame. Coercing...", type(result))
             df: pd.DataFrame = pd.concat(list(result)) if hasattr(result, "__iter__") else result
@@ -139,13 +140,13 @@ def load_dataset(input_file: str | Path, **kwargs: object) -> pd.DataFrame:
 
     except ImportError as e:
         missing_lib: str = str(e).split("'")[-2] if "'" in str(e) else "required library"
-        log.exception("Missing dependency for %s: Try 'pip install %s'", ext, missing_lib)
+        log.error("Missing dependency for %s: Try 'pip install %s'", ext, missing_lib)
         raise
 
-    except Exception:
-        log.exception("An error occurred while loading %s", file_path)
+    except Exception as e:
+        log.error("An error occurred while loading %s: %s", file_path, str(e))
         raise
 
-    else:
-        log.info("Successfully loaded %d rows and %d columns.", len(df), len(df.columns))
-        return df
+    # --- 3. Success Telemetry ---
+    log.info("Successfully loaded %d rows and %d columns.", len(df), len(df.columns))
+    return df
